@@ -13,15 +13,20 @@ import AppKit
 import Charts
 
 @main
-struct NetworkMonitorApp: App {
+struct BandwidthTrackerApp: App {
     @StateObject private var monitor = NetworkMonitor()
+    @StateObject private var settings = AppSettings()
     
     var body: some Scene {
         MenuBarExtra {
-            PopoverView(monitor: monitor)
+            PopoverView(monitor: monitor, settings: settings)
         } label: {
-            MenuBarView(monitor: monitor)
+            MenuBarView(monitor: monitor, settings: settings)
         }
         .menuBarExtraStyle(.window)
+        
+        Settings {
+            SettingsView(settings: settings)
+        }
     }
 }

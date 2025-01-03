@@ -5,30 +5,64 @@
 //  Created by Trevor Lee on 2025-01-03.
 //
 
+import Network
 import Foundation
+import SystemConfiguration
 
 class NetworkMonitor: ObservableObject {
     @Published private(set) var stats: NetworkStats
     
     private var previousUploadBytes: Int64 = 0
-    private var previousDownloadBytes: Int64 = 0
-    private var lastUpdateTime = Date()
-    private let statsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("networkStats.json")
+        private var previousDownloadBytes: Int64 = 0
+        private var lastUpdateTime = Date()
+        private var sessionTimer: Timer?
+        private let statsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("networkStats.json")
     
     init() {
-        // Initialize with default stats
-        self.stats = NetworkStats()
-        
-        // Try to load saved stats
-        if let loadedStats = loadStats() {
-            self.stats = loadedStats
-            self.previousUploadBytes = loadedStats.lastKnownUploadBytes
-            self.previousDownloadBytes = loadedStats.lastKnownDownloadBytes
+            self.stats = NetworkStats()
+            
+            if let loadedStats = loadStats() {
+                self.stats = loadedStats
+                self.previousUploadBytes = loadedStats.lastKnownUploadBytes
+                self.previousDownloadBytes = loadedStats.lastKnownDownloadBytes
+            }
+            
+            startMonitoring()
         }
-        
-        Timer.scheduledTimer(withTimeInterval: 4.0, repeats: true) { [weak self] _ in
-            self?.updateNetworkStats()
+    
+    deinit {
+        sessionTimer?.invalidate()
+    }
+    
+    private func startMonitoring() {
+            stats.isMonitoring = true
+            
+            // Network stats update timer
+            Timer.scheduledTimer(withTimeInterval: 4.0, repeats: true) { [weak self] _ in
+                self?.updateNetworkStats()
+            }
+            
+            // Session duration timer
+            sessionTimer?.invalidate() // Ensure any existing timer is invalidated
+            sessionTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+                guard let self = self else { return }
+                if self.stats.isMonitoring {
+                    self.stats.sessionDuration += 1
+                    self.saveStats() // Save regularly to persist session duration
+                }
+            }
+            
+            // Make sure the timer stays active even when the popover is closed
+            RunLoop.current.add(sessionTimer!, forMode: .common)
         }
+    
+    func pauseMonitoring() {
+        stats.isMonitoring = false
+        saveStats()
+    }
+    
+    func resumeMonitoring() {
+        stats.isMonitoring = true
     }
     
     private func updateNetworkStats() {
@@ -113,9 +147,11 @@ class NetworkMonitor: ObservableObject {
     }
     
     func resetStats() {
+        sessionTimer?.invalidate()
         stats = NetworkStats()
         previousUploadBytes = 0
         previousDownloadBytes = 0
         saveStats()
+        startMonitoring()
     }
 }
