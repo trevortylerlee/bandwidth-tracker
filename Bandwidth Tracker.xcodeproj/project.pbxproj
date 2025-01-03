@@ -16,6 +16,11 @@
 			path = "Bandwidth Tracker";
 			sourceTree = "<group>";
 		};
+		8F4BAE4E2D27EBA700DF7DE9 /* Views */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Views;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -34,6 +39,7 @@
 			children = (
 				8F0190302D23747300FFCC82 /* Bandwidth Tracker */,
 				8F01902F2D23747300FFCC82 /* Products */,
+				8F4BAE4E2D27EBA700DF7DE9 /* Views */,
 			);
 			sourceTree = "<group>";
 		};
@@ -62,6 +68,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				8F0190302D23747300FFCC82 /* Bandwidth Tracker */,
+				8F4BAE4E2D27EBA700DF7DE9 /* Views */,
 			);
 			name = "Bandwidth Tracker";
 			packageProductDependencies = (
