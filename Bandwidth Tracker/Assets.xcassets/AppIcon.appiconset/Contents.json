@@ -19,7 +19,7 @@
       "size" : "32x32"
     },
     {
-      "filename" : "bandwidth-tracker-icon-64x64.png",
+      "filename" : "bandwidth-tracker-icon-64x64 1.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "32x32"
@@ -55,7 +55,7 @@
       "size" : "512x512"
     },
     {
-      "filename" : "bandwidth-tracker-icon.png",
+      "filename" : "bandwidth-tracker-icon-1024x1024.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "512x512"
