@@ -14,13 +14,15 @@ struct NetworkStats: Codable {
     var totalDownloaded: Int64 = 0
     var startTime: Date
     var isMonitoring: Bool
+    var sessionDuration: TimeInterval = 0
     var dataPoints: [NetworkDataPoint] = []
     var lastKnownUploadBytes: Int64 = 0
     var lastKnownDownloadBytes: Int64 = 0
-    var sessionDuration: TimeInterval = 0
+    var lastActiveTimestamp: Date
     
     init() {
         startTime = Date()
+        lastActiveTimestamp = Date()
         isMonitoring = true
         totalUploaded = 0
         totalDownloaded = 0
