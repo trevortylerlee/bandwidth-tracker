@@ -26,7 +26,7 @@ struct BandwidthTrackerApp: App {
         .menuBarExtraStyle(.window)
         
         Settings {
-            SettingsView(settings: settings)
+            SettingsView(settings: settings, monitor: monitor)
         }
     }
 }

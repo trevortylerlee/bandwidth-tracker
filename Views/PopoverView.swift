@@ -46,35 +46,18 @@ struct PopoverView: View {
             NetworkUsageGraph(dataPoints: monitor.stats.dataPoints)
             
             HStack {
-                            Text("Session duration:")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(formattedTrackingDuration)
-                                .font(.caption)
-                            Spacer()
-                            
-                            HStack(spacing: 8) {
-                                SettingsLink {
-                                    Image(systemName: "gear")
-                                }
-                                .buttonStyle(.borderless)
-                                
-                                Button {
-                                    showingResetConfirmation = true
-                                } label: {
-                                    Image(systemName: "arrow.counterclockwise")
-                                }
-                                .buttonStyle(.borderless)
-                            }
-                            .alert("Reset Statistics", isPresented: $showingResetConfirmation) {
-                                Button("Cancel", role: .cancel) { }
-                                Button("Reset", role: .destructive) {
-                                    monitor.resetStats()
-                                }
-                            } message: {
-                                Text("Are you sure you want to reset all network statistics? This cannot be undone.")
-                            }
-                        }
+                Text("Session duration:")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(formattedTrackingDuration)
+                    .font(.caption)
+                Spacer()
+                
+                SettingsLink {
+                    Image(systemName: "gear")
+                }
+                .buttonStyle(.borderless)
+            }
         }
         .frame(width: 400)
         .padding()

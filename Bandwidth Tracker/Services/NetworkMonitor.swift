@@ -13,16 +13,19 @@ import AppKit
 class NetworkMonitor: ObservableObject {
     @Published private(set) var stats: NetworkStats
     
-    private var previousUploadBytes: Int64 = 0
-    private var previousDownloadBytes: Int64 = 0
-    private var lastUpdateTime = Date()
-    private var sessionTimer: Timer?
-    private var statsTimer: Timer?
+    // Use a single DispatchSourceTimer instead of multiple Timer instances
+    private var combinedTimer: DispatchSourceTimer?
     private var needsSaving = false
     private var lastSaveTime = Date()
     private let statsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("networkStats.json")
     private let saveInterval: TimeInterval = 60
     private let notificationCenter = NotificationCenter.default
+    
+    // Track the last stats update time
+    private var lastStatsUpdateTime = Date()
+    private var previousUploadBytes: Int64 = 0
+    private var previousDownloadBytes: Int64 = 0
+    private var lastUpdateTime = Date()
     
     init() {
         self.stats = NetworkStats()
@@ -41,8 +44,7 @@ class NetworkMonitor: ObservableObject {
     }
     
     deinit {
-        sessionTimer?.invalidate()
-        statsTimer?.invalidate()
+        stopMonitoring()
         notificationCenter.removeObserver(self)
         if needsSaving {
             saveStats()
@@ -118,24 +120,40 @@ class NetworkMonitor: ObservableObject {
     private func startMonitoring() {
         stats.isMonitoring = true
         
-        // Network stats update timer - reduced frequency
-        statsTimer?.invalidate()
-        statsTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            self?.updateNetworkStats()
-        }
-        RunLoop.current.add(statsTimer!, forMode: .common)
+        // Create a single timer on a background queue
+        let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .utility))
+        timer.schedule(deadline: .now(), repeating: .milliseconds(1000)) // 1 second interval
         
-        // Session duration timer
-        sessionTimer?.invalidate()
-        sessionTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        timer.setEventHandler { [weak self] in
             guard let self = self else { return }
-            if self.stats.isMonitoring {
-                self.stats.sessionDuration += 1
-                self.needsSaving = true
-                self.checkAndSaveIfNeeded()
+            
+            // Update session duration
+            DispatchQueue.main.async {
+                if self.stats.isMonitoring {
+                    self.stats.sessionDuration += 1
+                    self.needsSaving = true
+                }
             }
+            
+            // Check if it's time to update network stats
+            let now = Date()
+            if now.timeIntervalSince(self.lastStatsUpdateTime) >= 5.0 {
+                self.updateNetworkStats()
+                self.lastStatsUpdateTime = now
+            }
+            
+            // Check if save is needed
+            self.checkAndSaveIfNeeded()
         }
-        RunLoop.current.add(sessionTimer!, forMode: .common)
+        
+        combinedTimer = timer
+        timer.resume()
+    }
+    
+    private func stopMonitoring() {
+        stats.isMonitoring = false
+        combinedTimer?.cancel()
+        combinedTimer = nil
     }
     
     private func updateNetworkStats() {
@@ -169,36 +187,36 @@ class NetworkMonitor: ObservableObject {
             let uploadDiff = currentUploadBytes - previousUploadBytes
             let downloadDiff = currentDownloadBytes - previousDownloadBytes
             
-            stats.uploadSpeed = Double(uploadDiff) / timeInterval
-            stats.downloadSpeed = Double(downloadDiff) / timeInterval
-            
-            stats.totalUploaded += uploadDiff
-            stats.totalDownloaded += downloadDiff
-            
-            stats.lastKnownUploadBytes = currentUploadBytes
-            stats.lastKnownDownloadBytes = currentDownloadBytes
-            
-            // Update last active timestamp
-            stats.lastActiveTimestamp = Date()
-            
-            // Only add data points every minute
-            if stats.dataPoints.isEmpty || Date().timeIntervalSince(stats.dataPoints.last?.timestamp ?? Date.distantPast) >= 60 {
-                let dataPoint = NetworkDataPoint(
-                    timestamp: Date(),
-                    uploadBytes: stats.totalUploaded,
-                    downloadBytes: stats.totalDownloaded
-                )
-                stats.dataPoints.append(dataPoint)
+            DispatchQueue.main.async {
+                self.stats.uploadSpeed = Double(uploadDiff) / timeInterval
+                self.stats.downloadSpeed = Double(downloadDiff) / timeInterval
                 
-                // Limit the number of data points to prevent memory growth
-                if stats.dataPoints.count > 1440 { // 24 hours worth of minute-by-minute data
-                    stats.dataPoints.removeFirst(stats.dataPoints.count - 1440)
+                self.stats.totalUploaded += uploadDiff
+                self.stats.totalDownloaded += downloadDiff
+                
+                self.stats.lastKnownUploadBytes = currentUploadBytes
+                self.stats.lastKnownDownloadBytes = currentDownloadBytes
+                
+                // Update last active timestamp
+                self.stats.lastActiveTimestamp = Date()
+                
+                // Only add data points every minute
+                if self.stats.dataPoints.isEmpty || Date().timeIntervalSince(self.stats.dataPoints.last?.timestamp ?? Date.distantPast) >= 60 {
+                    let dataPoint = NetworkDataPoint(
+                        timestamp: Date(),
+                        uploadBytes: self.stats.totalUploaded,
+                        downloadBytes: self.stats.totalDownloaded
+                    )
+                    self.stats.dataPoints.append(dataPoint)
+                    
+                    // Limit the number of data points to prevent memory growth
+                    if self.stats.dataPoints.count > 1440 { // 24 hours worth of minute-by-minute data
+                        self.stats.dataPoints.removeFirst(self.stats.dataPoints.count - 1440)
+                    }
+                    
+                    self.needsSaving = true
                 }
-                
-                needsSaving = true
             }
-            
-            checkAndSaveIfNeeded()
         }
         
         previousUploadBytes = currentUploadBytes
@@ -228,9 +246,7 @@ class NetworkMonitor: ObservableObject {
     }
     
     func resetStats() {
-        // Stop current monitoring
-        sessionTimer?.invalidate()
-        statsTimer?.invalidate()
+        stopMonitoring()
         
         // Reset all stats
         stats = NetworkStats()
