@@ -8,27 +8,17 @@
 import Foundation
 
 struct NetworkStats: Codable {
+    var isMonitoring: Bool = false
+    var sessionDuration: TimeInterval = 0
+    
     var uploadSpeed: Double = 0
     var downloadSpeed: Double = 0
+    
     var totalUploaded: Int64 = 0
     var totalDownloaded: Int64 = 0
-    var startTime: Date
-    var isMonitoring: Bool
-    var sessionDuration: TimeInterval = 0
-    var dataPoints: [NetworkDataPoint] = []
+    
     var lastKnownUploadBytes: Int64 = 0
     var lastKnownDownloadBytes: Int64 = 0
-    var lastActiveTimestamp: Date
-    
-    init() {
-        startTime = Date()
-        lastActiveTimestamp = Date()
-        isMonitoring = true
-        totalUploaded = 0
-        totalDownloaded = 0
-        lastKnownUploadBytes = 0
-        lastKnownDownloadBytes = 0
-    }
 }
 
 struct NetworkDataPoint: Codable, Identifiable {
