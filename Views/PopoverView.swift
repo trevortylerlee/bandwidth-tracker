@@ -11,6 +11,7 @@ struct PopoverView: View {
     @ObservedObject var monitor: NetworkMonitor
     @ObservedObject var settings: AppSettings
     @State private var showingResetConfirmation = false
+    @State private var showingQuitConfirmation = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -55,10 +56,27 @@ struct PopoverView: View {
                     Image(systemName: "gear")
                 }
                 .buttonStyle(.borderless)
+                
+                Button {
+                    showingQuitConfirmation = true
+                } label: {
+                    Image(systemName: "power")
+                        .foregroundColor(.red)
+                }
+                .buttonStyle(.borderless)
+                .help("Quit Application")
             }
         }
         .frame(width: 250)
         .padding()
+        .alert("Quit Application", isPresented: $showingQuitConfirmation) {
+                    Button("Cancel", role: .cancel) { }
+                    Button("Quit", role: .destructive) {
+                        NSApplication.shared.terminate(nil)
+                    }
+                } message: {
+                    Text("Are you sure you want to quit Bandwidth Tracker?")
+                }
     }
     
     var formattedTrackingDuration: String {
