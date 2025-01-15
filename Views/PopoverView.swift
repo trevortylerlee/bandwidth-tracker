@@ -43,8 +43,6 @@ struct PopoverView: View {
                 }
             }
             
-            NetworkUsageGraph(dataPoints: monitor.stats.dataPoints)
-            
             HStack {
                 Text("Session duration:")
                     .font(.caption)
@@ -59,7 +57,7 @@ struct PopoverView: View {
                 .buttonStyle(.borderless)
             }
         }
-        .frame(width: 400)
+        .frame(width: 250)
         .padding()
     }
     

@@ -13,7 +13,6 @@ import AppKit
 class NetworkMonitor: ObservableObject {
     @Published private(set) var stats: NetworkStats
     
-    // Use a single DispatchSourceTimer instead of multiple Timer instances
     private var combinedTimer: DispatchSourceTimer?
     private var needsSaving = false
     private var lastSaveTime = Date()
@@ -21,7 +20,6 @@ class NetworkMonitor: ObservableObject {
     private let saveInterval: TimeInterval = 60
     private let notificationCenter = NotificationCenter.default
     
-    // Track the last stats update time
     private var lastStatsUpdateTime = Date()
     private var previousUploadBytes: Int64 = 0
     private var previousDownloadBytes: Int64 = 0
@@ -34,9 +32,6 @@ class NetworkMonitor: ObservableObject {
             self.stats = loadedStats
             self.previousUploadBytes = loadedStats.lastKnownUploadBytes
             self.previousDownloadBytes = loadedStats.lastKnownDownloadBytes
-            
-            // Handle potential sleep gap on app launch
-            handleTimeGap(from: loadedStats.lastActiveTimestamp)
         }
         
         setupNotifications()
@@ -68,44 +63,11 @@ class NetworkMonitor: ObservableObject {
     }
     
     @objc private func handleSleep() {
-        // Save the current state before sleep
-        stats.lastActiveTimestamp = Date()
         saveStats()
     }
     
     @objc private func handleWake() {
-        // Handle the time gap since last active timestamp
-        handleTimeGap(from: stats.lastActiveTimestamp)
         startMonitoring()
-    }
-    
-    private func handleTimeGap(from lastTimestamp: Date) {
-        let now = Date()
-        let gap = now.timeIntervalSince(lastTimestamp)
-        
-        // If there's a significant gap (more than 2 minutes)
-        if gap > 120 {
-            // Create a "gap" data point using the last known values
-            if let lastPoint = stats.dataPoints.last {
-                let gapPoint = NetworkDataPoint(
-                    timestamp: lastTimestamp.addingTimeInterval(60), // 1 minute after last known point
-                    uploadBytes: lastPoint.uploadBytes,
-                    downloadBytes: lastPoint.downloadBytes
-                )
-                stats.dataPoints.append(gapPoint)
-                
-                // Create a new point at current time with same values
-                let currentPoint = NetworkDataPoint(
-                    timestamp: now,
-                    uploadBytes: lastPoint.uploadBytes,
-                    downloadBytes: lastPoint.downloadBytes
-                )
-                stats.dataPoints.append(currentPoint)
-            }
-        }
-        
-        stats.lastActiveTimestamp = now
-        needsSaving = true
     }
     
     private func checkAndSaveIfNeeded() {
@@ -120,14 +82,12 @@ class NetworkMonitor: ObservableObject {
     private func startMonitoring() {
         stats.isMonitoring = true
         
-        // Create a single timer on a background queue
         let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .utility))
-        timer.schedule(deadline: .now(), repeating: .milliseconds(1000)) // 1 second interval
+        timer.schedule(deadline: .now(), repeating: .milliseconds(1000))
         
         timer.setEventHandler { [weak self] in
             guard let self = self else { return }
             
-            // Update session duration
             DispatchQueue.main.async {
                 if self.stats.isMonitoring {
                     self.stats.sessionDuration += 1
@@ -135,14 +95,12 @@ class NetworkMonitor: ObservableObject {
                 }
             }
             
-            // Check if it's time to update network stats
             let now = Date()
             if now.timeIntervalSince(self.lastStatsUpdateTime) >= 5.0 {
                 self.updateNetworkStats()
                 self.lastStatsUpdateTime = now
             }
             
-            // Check if save is needed
             self.checkAndSaveIfNeeded()
         }
         
@@ -197,25 +155,7 @@ class NetworkMonitor: ObservableObject {
                 self.stats.lastKnownUploadBytes = currentUploadBytes
                 self.stats.lastKnownDownloadBytes = currentDownloadBytes
                 
-                // Update last active timestamp
-                self.stats.lastActiveTimestamp = Date()
-                
-                // Only add data points every minute
-                if self.stats.dataPoints.isEmpty || Date().timeIntervalSince(self.stats.dataPoints.last?.timestamp ?? Date.distantPast) >= 60 {
-                    let dataPoint = NetworkDataPoint(
-                        timestamp: Date(),
-                        uploadBytes: self.stats.totalUploaded,
-                        downloadBytes: self.stats.totalDownloaded
-                    )
-                    self.stats.dataPoints.append(dataPoint)
-                    
-                    // Limit the number of data points to prevent memory growth
-                    if self.stats.dataPoints.count > 1440 { // 24 hours worth of minute-by-minute data
-                        self.stats.dataPoints.removeFirst(self.stats.dataPoints.count - 1440)
-                    }
-                    
-                    self.needsSaving = true
-                }
+                self.needsSaving = true
             }
         }
         
@@ -247,20 +187,12 @@ class NetworkMonitor: ObservableObject {
     
     func resetStats() {
         stopMonitoring()
-        
-        // Reset all stats
         stats = NetworkStats()
         previousUploadBytes = 0
         previousDownloadBytes = 0
-        
-        // Force an immediate save
         saveStats()
-        
-        // Reset timers
         lastSaveTime = Date()
         needsSaving = false
-        
-        // Restart monitoring
         startMonitoring()
     }
 }
