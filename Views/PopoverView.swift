@@ -19,7 +19,6 @@ struct PopoverView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Image(systemName: "arrow.down.circle.fill")
-                            .foregroundColor(.blue)
                         Text(settings.displayMode.popoverLabels.download)
                             .foregroundStyle(.secondary)
                         switch settings.displayMode {
@@ -31,7 +30,6 @@ struct PopoverView: View {
                     }
                     HStack {
                         Image(systemName: "arrow.up.circle.fill")
-                            .foregroundColor(.orange)
                         Text(settings.displayMode.popoverLabels.upload)
                             .foregroundStyle(.secondary)
                         switch settings.displayMode {
