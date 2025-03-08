@@ -1,6 +1,10 @@
 # Bandwidth Tracker
 > Menu bar app to track bandwidth usage
 
-![bandwidth-tracker-thumbnail](https://github.com/user-attachments/assets/18d9ea26-b95f-4471-8282-3e0734c3c8ed)
+![bandwidth-tracker-thumbnail](https://github.com/user-attachments/assets/91a54af0-95fb-4913-b0b2-bab68c1f5907)
 
-⚠️ Bandwidth Tracker is in alpha. Bugs galore. Use at your own peril.
+## Installation Instructions
+
+1. Download the [latest release](https://github.com/trevortylerlee/bandwidth-tracker/releases/latest) on the [Releases page](https://github.com/trevortylerlee/bandwidth-tracker/releases/).
+2. Unzip the downloaded ZIP file.
+3. Drag `Bandwidth Tracker.app` to the Applications folder on your Mac.
